@@ -25,32 +25,35 @@ def run_query(query):
         return cur.fetch_pandas_all()
 
 # Get a unique list of products to select from
-products = pd.DataFrame(run_query("SELECT DISTINCT COMMODITY_DESC from CHARLIE_FEATURE_STORE ORDER BY COMMODITY_DESC"))
+products = pd.DataFrame(run_query("SELECT DISTINCT COMMODITY_DESC from CHARLIE_FEATURE_STORE WHERE COMMODITY_DESC != 'ADULT INCONTINENCE' ORDER BY COMMODITY_DESC"))
 
-st.title("Customer Propensity Scoring for Products")
-st.header("Choose your Product and Propensity Score range")
+st.title("Propensity to Buy")
+st.caption("👋 Hello, welcome to our customer propensity scoring app! Choose a product from the drop down below and then select a propensity score range using the blue toggle, the model will then generate a list of househouses and their propensity To buy the product you have selected.")
+# Our propensity scoring model was trained on a data set containing transactions over two years from a group of 2,500 households who are frequent shoppers at a retailer. For certain households, demographic information and marketing contact history were included.")​
 
 # Ask user for product selection
 product_selection = st.selectbox(
-    "Select a product...",
+    "🎯 Select a product...",
     options = products
 )
+
 
 # Ask user for propensity score range 
 ## UPDATE SO THAT THE SLIDE UPDATES THE DATAFRAME DYNAMICALLY
 prop_range = st.slider(
-        'Select Propensity Score range...',
+        '🎯 Select a propensity score range...',
         min_value=0.0,
         max_value = 1.0,
         value = (0.0, 1.0)
 )
 
 # Run model button
-run_model = st.button("Run model")
+run_model = st.button("Generate Propensity")
 
 # When button is pressed
 if run_model:
-
+    st.text("👨🏼‍💻 Running the model...")
+    
     # Retrieve data and test data based on product selection
     data = pd.DataFrame(run_query("SELECT * FROM CHARLIE_FEATURE_STORE WHERE COMMODITY_DESC = '{}';".format(product_selection)), )
     test_data = pd.DataFrame(run_query("SELECT * FROM CHARLIE_FEATURES WHERE COMMODITY_DESC = '{}';".format(product_selection)), )
@@ -99,11 +102,13 @@ if run_model:
 
     # Data for streamlit table
     display_data = data[['HOUSEHOLD_KEY', 'PREDICTION']].sort_values(by='PREDICTION', ascending= False)
+    
     # Subset for slider range
     display_data = display_data.loc[(display_data['PREDICTION']>prop_range[0]) & (display_data['PREDICTION'] < prop_range[1]),:]
 
-    st.header("Results")
-
+    st.subheader("Results")
+    st.caption("The table below shows each household's propensity to buy the item you selected, ordered from highest to lowest.")
+    
     # Output table
     if display_data.empty:
         st.write("No results")

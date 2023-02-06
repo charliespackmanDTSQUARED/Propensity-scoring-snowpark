@@ -1,4 +1,4 @@
 *.ipynb
 *.csv
-*.toml
+secrets.toml
 streamlit_app - sklearn.py
