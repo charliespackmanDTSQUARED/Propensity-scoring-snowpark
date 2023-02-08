@@ -1,4 +1,4 @@
-snowflake-snowpark-python pandas
+snowflake-snowpark-python[pandas]
 pandas 
 numpy 
 tensorflow
