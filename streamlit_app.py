@@ -1,6 +1,6 @@
 # Import libraries
 import streamlit as st
-import snowflake.connector
+from snowflake.snowpark.session import Session
 import pandas as pd
 import numpy as np
 import tensorflow as tf
@@ -9,26 +9,25 @@ from tensorflow.keras import layers
 # Initialize connection.
 # Uses st.experimental_singleton to only run once.
 @st.experimental_singleton
-def init_connection():
-    return snowflake.connector.connect(
-        **st.secrets["snowflake"], client_session_keep_alive=True
-    )
+def create_session_object():
+   connection_parameters = st.secrets["snowflake"]
+   session = Session.builder.configs(connection_parameters).create()
+   return session
 
-conn = init_connection()
+conn = create_session_object()
 
 # Function to perform query.
 # Uses st.experimental_memo to only rerun when the query changes or after 10 min.
 @st.experimental_memo(ttl=600)
-def run_query(query):
-    with conn.cursor() as cur:
-        cur.execute(query)
-        return cur.fetch_pandas_all()
+def run_query(query: str):
+    data = conn.sql(query).to_pandas()
+    return data
 
 # Get a unique list of products to select from
-products = pd.DataFrame(run_query("SELECT DISTINCT COMMODITY_DESC from CHARLIE_FEATURE_STORE WHERE COMMODITY_DESC != 'ADULT INCONTINENCE' ORDER BY COMMODITY_DESC"))
+products = run_query("SELECT DISTINCT COMMODITY_DESC from CHARLIE_FEATURE_STORE WHERE COMMODITY_DESC != 'ADULT INCONTINENCE' ORDER BY COMMODITY_DESC")
 
 st.title("Propensity to Buy")
-st.caption("👋 Hello, welcome to our customer propensity scoring app! Choose a product from the drop down below and then select a propensity score range using the blue toggle, the model will then generate a list of househouses and their propensity To buy the product you have selected.")
+st.caption("👋 Hello, welcome to our customer propensity scoring app! Choose a product from the drop down below and then select a propensity score range using the blue toggle, the model will then generate a list of househouses and their propensity to buy the product you have selected.")
 # Our propensity scoring model was trained on a data set containing transactions over two years from a group of 2,500 households who are frequent shoppers at a retailer. For certain households, demographic information and marketing contact history were included.")​
 
 # Ask user for product selection
@@ -55,8 +54,8 @@ if run_model:
     st.text("👨🏼‍💻 Running the model...")
     
     # Retrieve data and test data based on product selection
-    data = pd.DataFrame(run_query("SELECT * FROM CHARLIE_FEATURE_STORE WHERE COMMODITY_DESC = '{}';".format(product_selection)), )
-    test_data = pd.DataFrame(run_query("SELECT * FROM CHARLIE_FEATURES WHERE COMMODITY_DESC = '{}';".format(product_selection)), )
+    data = run_query("SELECT * FROM CHARLIE_FEATURE_STORE WHERE COMMODITY_DESC = '{}';".format(product_selection))
+    test_data = run_query("SELECT * FROM CHARLIE_FEATURES WHERE COMMODITY_DESC = '{}';".format(product_selection))
 
     # Function to pre-process raw snowflake data 
     def process_tensors(model_data):
@@ -83,10 +82,10 @@ if run_model:
 
     # Define and train TF model
     model = tf.keras.Sequential(
-        [tf.keras.layers.Dense(128, activation = 'relu'),
-        tf.keras.layers.Dense(128, activation = 'relu'),
-        tf.keras.layers.Dense(128, activation = 'relu'),
-        tf.keras.layers.Dense(1)]
+        [layers.Dense(128, activation = 'relu'),
+        layers.Dense(128, activation = 'relu'),
+        layers.Dense(128, activation = 'relu'),
+        layers.Dense(1)]
         )
 
     model.compile(

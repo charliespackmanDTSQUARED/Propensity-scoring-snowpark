@@ -1,6 +1,4 @@
-streamlit 
-snowflake.connector
+snowflake-snowpark-python pandas
 pandas 
 numpy 
-sklearn
 tensorflow
