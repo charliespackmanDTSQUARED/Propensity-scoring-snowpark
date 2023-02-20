@@ -18,7 +18,7 @@ conn = create_session_object()
 # Uses st.experimental_memo to only rerun when the query changes or after 10 min.
 @st.experimental_memo(ttl=600)
 def run_query(query: str):
-    data = conn.sql(query)
+    data = conn.sql(query).collect()
     return data
 
 # Get a unique list of products to select from
