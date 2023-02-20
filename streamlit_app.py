@@ -27,6 +27,8 @@ st.subheader("Refresh data")
 # Run model button
 refresh_data = st.button("Refresh Data")
 
+st.caption("Press this button to update the underlying data with the most recent transactions (this will we take 2-3 minutes)")
+
 if refresh_data:
     st.write("Refresh started...")
     conn.sql("CALL CREATE_FEATURE_SETS(['30', '60', '90'], [1, 31, 61, 91])").collect()
