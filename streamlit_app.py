@@ -27,7 +27,7 @@ st.subheader("Refresh data")
 # Run model button
 refresh_data = st.button("Refresh Data")
 
-st.caption("Press this button to update the underlying data with the most recent transactions (this will we take 2-3 minutes)")
+st.caption("Press this button to update the underlying data with the most recent transactions (this will we take 2-3 minutes).")
 
 if refresh_data:
     st.write("Refresh started...")
@@ -36,6 +36,7 @@ if refresh_data:
 
 
 st.subheader("Run model")
+st.caption("Select a product to generate propensity scores for and press the 'Generate Propensity' button.")
 
 # Ask user for product selection
 product_selection = st.selectbox(
