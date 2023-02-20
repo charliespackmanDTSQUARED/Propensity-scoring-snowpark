@@ -22,6 +22,19 @@ st.title("Propensity to Buy")
 st.caption("👋 Hello, welcome to our customer propensity scoring app! Choose a product from the drop down below and then select a propensity score range using the blue toggle, the model will then generate a list of househouses and their propensity to buy the product you have selected.")
 # Our propensity scoring model was trained on a data set containing transactions over two years from a group of 2,500 households who are frequent shoppers at a retailer. For certain households, demographic information and marketing contact history were included.")​
 
+
+st.subheader("Refresh data")
+# Run model button
+refresh_data = st.button("Refresh Data")
+
+if refresh_data:
+    st.write("Refresh started...")
+    conn.sql("CALL CREATE_FEATURE_SETS(['30', '60', '90'], [1, 31, 61, 91])").collect()
+    st.write("Refresh complete!")
+
+
+st.subheader("Run model")
+
 # Ask user for product selection
 product_selection = st.selectbox(
     "🎯 Select a product...",
