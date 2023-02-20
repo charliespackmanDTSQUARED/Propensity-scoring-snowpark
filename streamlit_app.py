@@ -46,7 +46,7 @@ if run_model:
     st.text("👨🏼‍💻 Running the model...")
     
     # Push ML to Snowflake
-    conn.sql(f"CALL TRAIN_PROPENSITY_MODEL({product_selection})").collect()
+    conn.sql(f"CALL TRAIN_PROPENSITY_MODEL('{product_selection}')").collect()
 
     # Get predictions
     data = conn.sql("SELECT * FROM CHARLIE_INFERENCE_PREDICTIONS").to_pandas()
