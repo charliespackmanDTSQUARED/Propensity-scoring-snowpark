@@ -1,5 +1,4 @@
 *.ipynb
 *.csv
 secrets.toml
-streamlit_app - sklearn.py
 logs/*

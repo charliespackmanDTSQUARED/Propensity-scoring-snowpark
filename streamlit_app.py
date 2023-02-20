@@ -1,10 +1,8 @@
 # Import libraries
 import streamlit as st
 from snowflake.snowpark.session import Session
-import pandas as pd
-import numpy as np
-import tensorflow as tf
-from tensorflow.keras import layers
+import pandas
+import numpy
 
 # Initialize connection.
 # Uses st.experimental_singleton to only run once.
@@ -20,11 +18,11 @@ conn = create_session_object()
 # Uses st.experimental_memo to only rerun when the query changes or after 10 min.
 @st.experimental_memo(ttl=600)
 def run_query(query: str):
-    data = conn.sql(query).to_pandas()
+    data = conn.sql(query)
     return data
 
 # Get a unique list of products to select from
-products = run_query("SELECT DISTINCT COMMODITY_DESC from CHARLIE_FEATURE_STORE WHERE COMMODITY_DESC != 'ADULT INCONTINENCE' ORDER BY COMMODITY_DESC")
+products = run_query("SELECT DISTINCT COMMODITY_DESC from CHARLIE_FEATURE_STORE WHERE COMMODITY_DESC != 'ADULT INCONTINENCE' ORDER BY COMMODITY_DESC").to_pandas()
 
 st.title("Propensity to Buy")
 st.caption("👋 Hello, welcome to our customer propensity scoring app! Choose a product from the drop down below and then select a propensity score range using the blue toggle, the model will then generate a list of househouses and their propensity to buy the product you have selected.")
@@ -53,51 +51,11 @@ run_model = st.button("Generate Propensity")
 if run_model:
     st.text("👨🏼‍💻 Running the model...")
     
-    # Retrieve data and test data based on product selection
-    data = run_query("SELECT * FROM CHARLIE_FEATURE_STORE WHERE COMMODITY_DESC = '{}';".format(product_selection))
-    test_data = run_query("SELECT * FROM CHARLIE_FEATURES WHERE COMMODITY_DESC = '{}';".format(product_selection))
+    # Push ML to Snowflake
+    run_query(f"CALL TRAIN_PROPENSITY_MODEL({product_selection})")
 
-    # Function to pre-process raw snowflake data 
-    def process_tensors(model_data):
-
-        # Subset for chosen product to model
-        model_data = data.drop(columns=['COMMODITY_DESC', 'DATE', 'HOUSEHOLD_KEY'])
-        # reset index to ensure it can be rejoined later
-        model_data = model_data.reset_index(drop = True)
-        # Convert to float - needed for TF
-        model_data['PURCHASED'] = model_data['PURCHASED'].astype(float)
-
-        # Remove NaN
-        model_data = model_data.fillna(0)
-
-        # Split to features and labels
-        model_data_x = model_data.iloc[:, :144]
-        model_data_y = model_data.iloc[:, 144]
-
-        return model_data_x, model_data_y
-
-    # Pre-process the data and test data
-    ds_model_data_x, ds_model_data_y = process_tensors(data)
-    ds_test_model_data_x, ds_test_model_data_y = process_tensors(test_data)
-
-    # Define and train TF model
-    model = tf.keras.Sequential(
-        [layers.Dense(128, activation = 'relu'),
-        layers.Dense(128, activation = 'relu'),
-        layers.Dense(128, activation = 'relu'),
-        layers.Dense(1)]
-        )
-
-    model.compile(
-        optimizer='adam',
-        loss=tf.keras.losses.BinaryCrossentropy(from_logits=True),
-        metrics=["accuracy", "AUC"])
-
-    # Model training
-    model.fit(ds_model_data_x.to_numpy(), ds_model_data_y.to_numpy(), epochs=30)
-
-    # Append predictions to dataset
-    data['PREDICTION'] = np.round(tf.nn.sigmoid(model.predict(ds_test_model_data_x.to_numpy())), 4)
+    # Get predictions
+    data = run_query("SELECT * FROM CHARLIE_INFERENCE_PREDICTIONS").to_pandas()
 
     # Data for streamlit table
     display_data = data[['HOUSEHOLD_KEY', 'PREDICTION']].sort_values(by='PREDICTION', ascending= False)
