@@ -56,7 +56,7 @@ if run_model:
     
     # Retrieve data and test data based on product selection
     data = pd.DataFrame(run_query("SELECT * FROM CHARLIE_FEATURE_STORE WHERE COMMODITY_DESC = '{}';".format(product_selection)), )
-    test_data = pd.DataFrame(run_query("SELECT * FROM CHARLIE_FEATURES WHERE COMMODITY_DESC = '{}';".format(product_selection)), )
+    test_data = pd.DataFrame(run_query("SELECT * FROM CHARLIE_INFERENCE_STORE WHERE COMMODITY_DESC = '{}';".format(product_selection)), )
 
     # Function to pre-process raw snowflake data 
     def process_tensors(model_data):
