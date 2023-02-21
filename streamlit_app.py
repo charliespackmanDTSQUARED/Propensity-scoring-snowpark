@@ -17,12 +17,16 @@ conn = create_session_object()
 # Function to perform query.
 # Uses st.experimental_memo to only rerun when the query changes or after 10 min.
 @st.experimental_memo(ttl=600)
-def run_query(query):
-    return conn.sql(query)
+def sql_query(query):
+    return conn.sql(query).to_pandas()
+
+@st.experimental_memo(ttl=600)
+def sql_execute(query):
+    return conn.sql(query).collect()
 
 
 # Get a unique list of products to select from
-products = run_query("SELECT DISTINCT COMMODITY_DESC from CHARLIE_FEATURE_STORE WHERE COMMODITY_DESC != 'ADULT INCONTINENCE' ORDER BY COMMODITY_DESC").to_pandas()
+products = sql_query("SELECT DISTINCT COMMODITY_DESC from CHARLIE_FEATURE_STORE WHERE COMMODITY_DESC != 'ADULT INCONTINENCE' ORDER BY COMMODITY_DESC")
 
 st.title("Propensity to Buy")
 st.caption("👋 Hello, welcome to our customer propensity scoring app! Choose a product from the drop down below and then select a propensity score range using the blue toggle, the model will then generate a list of househouses and their propensity to buy the product you have selected.")
@@ -37,7 +41,7 @@ st.caption("Press this button to update the underlying data with the most recent
 
 if refresh_data:
     st.write("Refresh started...")
-    run_query("CALL CREATE_FEATURE_SETS(['30', '60', '90'], [1, 31, 61, 91])").collect()
+    sql_execute("CALL CREATE_FEATURE_SETS(['30', '60', '90'], [1, 31, 61, 91])")
     st.write("Refresh complete!")
 
 
@@ -68,10 +72,10 @@ if run_model:
     st.text("👨🏼‍💻 Running the model...")
     
     # Push ML to Snowflake
-    run_query(f"CALL TRAIN_PROPENSITY_MODEL('{product_selection}')").collect()
+    sql_execute(f"CALL TRAIN_PROPENSITY_MODEL('{product_selection}')")
 
     # Get predictions
-    data = run_query("SELECT * FROM CHARLIE_INFERENCE_PREDICTIONS").to_pandas()
+    data = sql_query("SELECT * FROM CHARLIE_INFERENCE_PREDICTIONS")
 
     # Data for streamlit table
     display_data = data[['HOUSEHOLD_KEY', 'PREDICTION']].sort_values(by='PREDICTION', ascending= False)
