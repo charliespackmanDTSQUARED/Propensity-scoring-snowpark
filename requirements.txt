@@ -1,4 +1,4 @@
 snowflake-snowpark-python[pandas]
 pandas 
 numpy 
-pyarrow==10.0.0
+pyarrow==8.0.0
