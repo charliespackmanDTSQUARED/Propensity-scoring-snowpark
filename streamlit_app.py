@@ -40,9 +40,9 @@ refresh_data = st.button("Refresh Data")
 st.caption("Press this button to update the underlying data with the most recent transactions (this will we take 2-3 minutes).")
 
 if refresh_data:
-    st.write("Refresh started...")
+    st.write("👨🏼‍💻 Refresh started...")
     sql_execute("CALL CREATE_FEATURE_SETS(['30', '60', '90'], [1, 31, 61, 91])")
-    st.write("Refresh complete!")
+    st.write("✅ Refresh complete!")
 
 
 st.subheader("Run model")
@@ -82,6 +82,8 @@ if run_model:
     
     # Subset for slider range
     display_data = display_data.loc[(display_data['PREDICTION']>prop_range[0]) & (display_data['PREDICTION'] < prop_range[1]),:]
+
+    st.text("✅ Model created!")
 
     st.subheader("Results")
     st.caption("The table below shows each household's propensity to buy the item you selected, ordered from highest to lowest.")
