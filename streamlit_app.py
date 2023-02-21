@@ -30,7 +30,7 @@ products = sql_query("SELECT DISTINCT COMMODITY_DESC from CHARLIE_FEATURE_STORE 
 
 st.title("Propensity to Buy")
 st.caption("👋 Hello, welcome to our customer propensity scoring app! Choose a product from the drop down below and then select a propensity score range using the blue toggle, the model will then generate a list of househouses and their propensity to buy the product you have selected.")
-# Our propensity scoring model was trained on a data set containing transactions over two years from a group of 2,500 households who are frequent shoppers at a retailer. For certain households, demographic information and marketing contact history were included.")​
+# Our propensity scoring model was trained on a data set containing transactions over two years from a group of 2,500 households who are frequent shoppers at a retailer. For certain households, demographic information and marketing contact history were included.")
 
 
 st.subheader("Refresh data")
