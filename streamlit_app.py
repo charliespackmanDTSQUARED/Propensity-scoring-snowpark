@@ -41,7 +41,7 @@ st.caption("Press this button to update the underlying data with the most recent
 
 if refresh_data:
     st.write("👨🏼‍💻 Refresh started...")
-    sql_execute("CALL CREATE_FEATURE_SETS(['30', '60', '90'], [1, 31, 61, 91])")
+    sql_execute("CALL CREATE_FEATURE_INFERENCE_STORE_V2(['30', '60', '90'], [1, 31, 61, 91])")
     st.write("✅ Refresh complete!")
 
 

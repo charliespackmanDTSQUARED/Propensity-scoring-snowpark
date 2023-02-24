@@ -37,9 +37,8 @@ FROM
     
 WHERE HOUSEHOLD_KEY IN (SELECT DISTINCT HOUSEHOLD_KEY FROM CHARLIE_HH_DEMOGRAPHIC);
 
-
 -- Procedure to create the updated Feature Store
-CREATE OR REPLACE PROCEDURE CREATE_FEATURE_SETS(SIZES array, LAGS array)
+CREATE OR REPLACE PROCEDURE CREATE_FEATURE_INFERENCE_STORE_v2(SIZES array, LAGS array)
       returns string not null
       language python
       runtime_version = '3.8'
@@ -1025,80 +1024,4 @@ $$
 ;
 
 
-CALL CREATE_FEATURE_SETS(['30', '60', '90'], [1, 31, 61, 91]);
-
-
--- Procedure to create the updated Feature Store
-CREATE OR REPLACE PROCEDURE TRAIN_PROPENSITY_MODEL(PRODUCT varchar)
-      returns string 
-      language python
-      runtime_version = '3.8'
-      packages = ('snowflake-snowpark-python', 'tensorflow', 'pandas', 'numpy')
-      handler = 'execute'
-    as
-$$
-import pandas as pd
-import numpy as np
-import tensorflow as tf
-from tensorflow.keras import layers
-from snowflake.snowpark import DataFrameWriter
-
-def execute(snowpark_session, PRODUCT: str):
-
-	## Get features and inference stores
-    feature_data = snowpark_session.sql(f"SELECT * FROM CHARLIE_FEATURE_STORE WHERE COMMODITY_DESC = '{PRODUCT}';").to_pandas()
-    inference_data = snowpark_session.sql(f"SELECT * FROM CHARLIE_INFERENCE_STORE WHERE COMMODITY_DESC = '{PRODUCT}';").to_pandas()
-
-
-    def process_tensors(data):
-		
-        # Subset for chosen product to model
-        data = data.drop(['COMMODITY_DESC', 'DATE', 'HOUSEHOLD_KEY'], axis = 1)
-        
-        # reset index to ensure it can be rejoined later
-        data = data.reset_index(drop = True)
-        
-        # Convert to float - needed for TF
-        data['PURCHASED'] = data['PURCHASED'].astype(float)
-		
-        # Remove NaN
-        data = data.fillna(0)
-		
-        # Split to features and labels
-        data_x = data.drop(['PURCHASED'], axis = 1)
-        data_y = data['PURCHASED']
-		
-        return data_x, data_y
-
-    # Pre-process the data and test data
-    ds_feature_data_x, ds_feature_data_y = process_tensors(feature_data)
-    ds_inference_data_x, ds_inference_data_y = process_tensors(inference_data)
-
-    # Define and train TF model
-    model = tf.keras.Sequential(
-        [layers.Dense(128, activation = 'relu'),
-        layers.Dense(128, activation = 'relu'),
-        layers.Dense(128, activation = 'relu'),
-        layers.Dense(1)]
-        )
-
-    model.compile(
-        optimizer='adam',
-        loss=tf.keras.losses.BinaryCrossentropy(from_logits=True),
-        metrics=["accuracy", "AUC"])
-
-    # Model training
-    model.fit(ds_feature_data_x.to_numpy(), ds_feature_data_y.to_numpy(), epochs=30)
-
-    # Append predictions to dataset
-    inference_data['PREDICTION'] = np.round(tf.nn.sigmoid(model.predict(ds_inference_data_x.to_numpy())), 4)
-
-    result = snowpark_session.create_dataframe(inference_data[['HOUSEHOLD_KEY', 'PREDICTION']])
-
-    # Write to table
-    result.write.mode("overwrite").save_as_table("CHARLIE_INFERENCE_PREDICTIONS")
-    snowpark_session.table("CHARLIE_INFERENCE_PREDICTIONS").collect()
-    
-    return "Success"
-      
-$$;
+CALL CREATE_FEATURE_INFERENCE_STORE_v2(['30', '60', '90'], [1, 31, 61, 91]);
