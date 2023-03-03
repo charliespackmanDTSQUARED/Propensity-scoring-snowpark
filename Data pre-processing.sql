@@ -1110,5 +1110,3 @@ def execute(snowpark_session, PRODUCT: str):
     return "Success"
       
 $$;
-
-CALL TRAIN_PROPENSITY_MODEL("SOFT DRINKS");
