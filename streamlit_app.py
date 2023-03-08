@@ -6,7 +6,6 @@ import numpy
 
 # Initialize connection.
 # Uses st.experimental_singleton to only run once.
-@st.experimental_singleton
 def create_session_object():
    connection_parameters = st.secrets["snowflake"]
    session = Session.builder.configs(connection_parameters).create()
@@ -16,11 +15,11 @@ conn = create_session_object()
 
 # Function to perform query.
 # Uses st.experimental_memo to only rerun when the query changes or after 10 min.
-@st.experimental_memo(ttl=600)
+@st.cache_data()
 def sql_query(query):
     return conn.sql(query).to_pandas()
 
-@st.experimental_memo(ttl=600)
+@st.cache_data()
 def sql_execute(query):
     return conn.sql(query).collect()
 
