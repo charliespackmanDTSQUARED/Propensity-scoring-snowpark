@@ -2,3 +2,4 @@ snowflake-snowpark-python[pandas]
 pandas 
 numpy 
 pyarrow==8.0.0
+streamlit
