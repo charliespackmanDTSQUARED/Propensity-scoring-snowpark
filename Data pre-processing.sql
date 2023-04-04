@@ -1107,6 +1107,6 @@ def execute(snowpark_session, PRODUCT: str):
     result.write.mode("overwrite").save_as_table("CHARLIE_INFERENCE_PREDICTIONS")
     snowpark_session.table("CHARLIE_INFERENCE_PREDICTIONS").collect()
     
-    return "Success"
+    return metrics
       
 $$;
