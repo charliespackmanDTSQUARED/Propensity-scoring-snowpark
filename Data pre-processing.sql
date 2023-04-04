@@ -1024,7 +1024,7 @@ $$
 ;
 
 
-CALL CREATE_FEATURE_INFERENCE_STORE_v2(['30', '60', '90'], [1, 31, 61, 91, 121, 151, 181, 211]);
+CALL CREATE_FEATURE_INFERENCE_STORE_v2(['30', '60', '90'], [1, 31, 61, 91]);
 
 
 -- Procedure to create the updated Feature Store
@@ -1066,40 +1066,34 @@ def execute(snowpark_session, PRODUCT: str):
         # Split to features and labels
         data_x = data.drop(['PURCHASED'], axis = 1)
         data_y = data['PURCHASED']
-
-        # Normalize numeric columns
-        normalizer = layers.Normalization()
-        normalizer.adapt(data_x)
-
 		
-        return data_x, data_y, normalizer
+        return data_x, data_y
 
     # Pre-process the data and test data
-    ds_feature_data_x, ds_feature_data_y, normalizer_feature = process_tensors(feature_data)
-    ds_inference_data_x, ds_inference_data_y, noramlizer_inference = process_tensors(inference_data)
+    ds_feature_data_x, ds_feature_data_y = process_tensors(feature_data)
+    ds_inference_data_x, ds_inference_data_y=  process_tensors(inference_data)
 
     # Define and train TF model
     model = tf.keras.Sequential(
-        [layers.Dense(1000, activation = 'relu'),
-        layers.BatchNormalization(),
-        layers.Dense(500, activation = 'relu'),
-        layers.BatchNormalization(),
-        layers.Dense(250, activation = 'relu'),
-        layers.BatchNormalization(),
-        layers.Dense(125, activation = 'relu'),
+        [layers.Dense(128, activation = 'relu'),
+        layers.Dense(128, activation = 'relu'),
+        layers.Dense(128, activation = 'relu'),
         layers.Dense(1)]
         )
 
     model.compile(
         optimizer='adam',
         loss=tf.keras.losses.BinaryCrossentropy(from_logits=True),
-        metrics=["accuracy", "AUC"])
+        metrics=["accuracy"])
 
     # Model training
-    model.fit(normalizer_feature(ds_feature_data_x.to_numpy()), ds_feature_data_y.to_numpy(), epochs=100)
+    model.fit(ds_feature_data_x.to_numpy(), ds_feature_data_y.to_numpy(), epochs=30)
+
+    # Get model metrics
+    metrics = model.evaluate(ds_feature_data_x.to_numpy(), ds_feature_data_y.to_numpy())
 
     # Append predictions to dataset
-    inference_data['PREDICTION'] = np.round(tf.nn.sigmoid(model.predict(noramlizer_inference(ds_inference_data_x.to_numpy()))), 4)
+    inference_data['PREDICTION'] = np.round(tf.nn.sigmoid(model.predict(ds_inference_data_x.to_numpy())), 4)
 
     result = snowpark_session.create_dataframe(inference_data[['HOUSEHOLD_KEY', 'PREDICTION']])
 

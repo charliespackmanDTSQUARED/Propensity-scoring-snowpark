@@ -14,7 +14,6 @@ def create_session_object():
 conn = create_session_object()
 
 # Function to perform query.
-# Uses st.experimental_memo to only rerun when the query changes or after 10 min.
 @st.cache_data()
 def sql_query(query):
     return conn.sql(query).to_pandas()
@@ -28,10 +27,10 @@ st.set_page_config(
 )
 
 st.markdown("""
-<style>
-.big-font {
-    font-size:20px;
-} </style> """, unsafe_allow_html=True)
+    <style>
+    .big-font {
+        font-size:20px;
+    } </style> """, unsafe_allow_html=True)
 
 # Get a unique list of products to select from
 products = sql_query("SELECT DISTINCT COMMODITY_DESC from CHARLIE_FEATURE_STORE WHERE COMMODITY_DESC != 'ADULT INCONTINENCE' ORDER BY COMMODITY_DESC")
@@ -83,6 +82,7 @@ if run_model:
     
     # Push ML to Snowflake
     metrics = sql_execute(f"CALL TRAIN_PROPENSITY_MODEL('{product_selection}')")
+    metrics = round(float(metrics[0][0].strip('][').split(', ')[1])*100, 2)
     
     # Get predictions
     data = sql_query("SELECT CHARLIE_INFERENCE_PREDICTIONS.HOUSEHOLD_KEY, CHARLIE_INFERENCE_PREDICTIONS.PREDICTION, CHARLIE_HH_DEMOGRAPHIC.AGE_DESC, CHARLIE_HH_DEMOGRAPHIC.MARITAL_STATUS_CODE, CHARLIE_HH_DEMOGRAPHIC.INCOME_DESC FROM CHARLIE_INFERENCE_PREDICTIONS LEFT JOIN CHARLIE_HH_DEMOGRAPHIC ON CHARLIE_INFERENCE_PREDICTIONS.HOUSEHOLD_KEY = CHARLIE_HH_DEMOGRAPHIC.HOUSEHOLD_KEY")
@@ -120,5 +120,4 @@ if run_model:
         # Inject CSS with Markdown
         st.markdown(hide_dataframe_row_index, unsafe_allow_html=True) # Inject CSS with Markdown
         st.dataframe(display_data) # Display a static table
-    
-    print(metrics) 
+        st.write(f"Model accuracy: {metrics}%")
